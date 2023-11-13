@@ -34,8 +34,27 @@ class RegisteredUserController extends Controller
 
         event(new Registered($user));
 
-        Auth::login($user);
+        return response()->json([
+            'message' => 'Successfully registered',
+            'user' => $user
+        ]);
+    }
 
-        return response()->noContent();
+    public function login(Request $request){
+        $request->validate([
+            'email' => ['required', 'string', 'email', 'max:255'],
+            'password' => ['required'],
+        ]);
+
+        if (Auth::attempt($request->only('email', 'password'))) {
+            return response()->json([
+                'message' => 'Successfully logged in',
+                'user' => Auth::user()
+            ]);
+        }
+
+        return response()->json([
+            'message' => 'Invalid login details'
+        ], 401);
     }
 }
