@@ -45,16 +45,18 @@ class RegisteredUserController extends Controller
             'email' => ['required', 'string', 'email', 'max:255'],
             'password' => ['required'],
         ]);
+       
+        $user = User::where('email', $request->email)->first();
 
-        if (Auth::attempt($request->only('email', 'password'))) {
+        if (!$user || !Hash::check($request->password, $user->password)) {
+            return response()->json(['error' => 'The provided credentials are incorrect.'], 401);
+        }else{
+            $token = $user->createToken('auth_token')->plainTextToken;
             return response()->json([
                 'message' => 'Successfully logged in',
-                'user' => Auth::user()
+                'user' => $user,
+                'token' => $token
             ]);
         }
-
-        return response()->json([
-            'message' => 'Invalid login details'
-        ], 401);
     }
 }

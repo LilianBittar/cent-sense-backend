@@ -4,6 +4,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\Auth\AuthenticatedSessionController;
 use App\Http\Controllers\Auth\RegisteredUserController;
+use App\Http\Controllers\UserPreferenceController;
 use App\Models\Ingredient;
 
 /*
@@ -24,6 +25,13 @@ Route::middleware(['auth:sanctum'])->get('/user', function (Request $request) {
 Route::get('/ingredients', function (Request $request) {
     return Ingredient::all();
 });
+
+Route::post('/user-preferences', [UserPreferenceController::class, 'store'])
+                ->middleware('auth:sanctum');
+Route::get('/user-preferences', [UserPreferenceController::class, 'index'])
+                ->middleware('auth:sanctum');
+Route::post('/user-preferences/delete', [UserPreferenceController::class, 'destroy'])
+                ->middleware('auth:sanctum');
 
 Route::post('/login', [RegisteredUserController::class, 'login'])
                 ->middleware('guest');
