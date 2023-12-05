@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Auth;
 
 use App\Http\Controllers\Controller;
 use App\Models\User;
+use App\Models\UserPreference;
 use Illuminate\Auth\Events\Registered;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
@@ -34,6 +35,78 @@ class RegisteredUserController extends Controller
 
         event(new Registered($user));
 
+        $breakfast_defaults = [
+            'Cheese',
+            'Eggs',
+            'Cold cuts',
+            'Bread',
+            'Butter',
+            'Jam',
+            'Pastries',
+            'Yoghurt',
+            'Cucumber',
+            'Cherry Tomatoes',
+            'Avocado',
+            'Dill',
+            'Parsley',
+        ];
+
+        $lunch_defaults = [
+            'Beetroot',
+            'Carrots',
+            'Cherry Tomatoes',
+            'Potatoes',
+            'Lettuce',
+            'Beef',
+            'Chicken Breast',
+            'Vermicelli Pasta',
+            'Rice',
+            'Avocado',
+            'Dill',
+            'Parsley',
+        ];
+
+        $dinner_defaults = [
+            'Potatoes',
+            'Beef',
+            'Chicken Breast',
+            'Vermicelli Pasta',
+            'Rice',
+            'Tomato Sauce',
+            'Pork',
+            'Salmon',
+            'Avocado',
+            'Dill',
+            'Parsley',
+        ];
+
+        foreach($breakfast_defaults as $default){
+            UserPreference::create([
+                'user_id' => $user->id,
+                'preference_category' => 'breakfast',
+                'name' => $default,
+                'value' => 1,
+            ]);
+        }
+
+        foreach($lunch_defaults as $default){
+            UserPreference::create([
+                'user_id' => $user->id,
+                'preference_category' => 'lunch',
+                'name' => $default,
+                'value' => 1,
+            ]);
+        }
+
+        foreach($dinner_defaults as $default){
+            UserPreference::create([
+                'user_id' => $user->id,
+                'preference_category' => 'dinner',
+                'name' => $default,
+                'value' => 1,
+            ]);
+        }
+
         return response()->json([
             'message' => 'Successfully registered',
             'user' => $user
@@ -54,9 +127,21 @@ class RegisteredUserController extends Controller
             $token = $user->createToken('auth_token')->plainTextToken;
             return response()->json([
                 'message' => 'Successfully logged in',
-                'user' => $user,
+                'user' => $user->toArray(),
                 'token' => $token
             ]);
         }
+    }
+
+    public function edit(Request $request){
+        $user = $request->user();
+        $user->zip_code = $request->zip_code;
+        $user->radius = $request->radius;
+        $user->save();
+        return response()->json([
+            'message' => 'Successfully updated user',
+            'user' => $user
+        ]);
+        
     }
 }

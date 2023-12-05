@@ -5,6 +5,7 @@ use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\Auth\AuthenticatedSessionController;
 use App\Http\Controllers\Auth\RegisteredUserController;
 use App\Http\Controllers\UserPreferenceController;
+use App\Http\Controllers\PlanController;
 use App\Models\Ingredient;
 
 /*
@@ -26,11 +27,19 @@ Route::get('/ingredients', function (Request $request) {
     return Ingredient::all();
 });
 
+Route::post('/recipe/create', [PlanController::class, 'createRecipe']);
+
+
+Route::post('/plan/generate', [PlanController::class, 'generate'])
+                ->middleware('auth:sanctum');
+
 Route::post('/user-preferences', [UserPreferenceController::class, 'store'])
                 ->middleware('auth:sanctum');
 Route::get('/user-preferences', [UserPreferenceController::class, 'index'])
                 ->middleware('auth:sanctum');
 Route::post('/user-preferences/delete', [UserPreferenceController::class, 'destroy'])
+                ->middleware('auth:sanctum');
+Route::post('/user', [RegisteredUserController::class, 'edit'])
                 ->middleware('auth:sanctum');
 
 Route::post('/login', [RegisteredUserController::class, 'login'])
