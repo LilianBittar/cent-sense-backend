@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\Plan;
+use App\Models\Recipe;
 use App\Models\Ingredient;
 use App\Models\UserPreference;
 use App\Http\Requests\StorePlanRequest;
@@ -13,6 +14,29 @@ use Illuminate\Support\Facades\Http;
 
 class PlanController extends Controller
 {
+
+    public function index(Request $request)
+    {
+        $user = $request->user();
+        $plans = Plan::where('user_id', $user->id)->get();
+        foreach ($plans as $key => $plan) {
+            $plan->recipes = Recipe::where('plan_id', $plan->id)->get();
+            foreach ($plan->recipes as $key => $recipe) {
+                $recipe->recipeIngredients = $recipe->recipeIngredients()->with(['ingredientProduct', 'ingredient'])->get();
+                $recipe->total_price = 0;
+                foreach ($recipe->recipeIngredients as $key => $recipeIngredient) {
+                    if ($recipeIngredient->ingredientProduct) {
+                        $recipe->total_price += $recipeIngredient->ingredientProduct->price;
+                        $plan->total_price += $recipeIngredient->ingredientProduct->price;
+                    }
+                }
+            }
+        }
+        return response()->json([
+            'message' => 'Successfully retrieved plans',
+            'plans' => $plans,
+        ]);
+    }
 
     public function generate(Request $request)
     {
@@ -45,6 +69,7 @@ class PlanController extends Controller
                             
                             $selected_suggestion_index = count($suggestion_list);
                             $selected_suggestion_index = floor($selected_suggestion_index / 2); 
+                            // $selected_suggestion_index = count($suggestion_list) - 1; 
                             $suggestion_list[$selected_suggestion_index]['selected'] = true;
                             $recipe['suggestions'][$ingredient->name] = $suggestion_list;
                         }
@@ -58,6 +83,66 @@ class PlanController extends Controller
         return response()->json([
             'message' => 'Successfully generated plan',
             'plan' => $meals,
+            'budget' => $request->budget,
+        ]);
+    }
+
+    public function store(Request $request)
+    {
+        $plan = Plan::create([
+            'user_id' => $request->user()->id,
+            'start_date' => $request->start_date,
+            'budget' => $request->budget,
+            'number_of_days' => $request->number_of_days
+        ]);
+
+        $mealTypes = ['breakfast', 'lunch', 'dinner'];
+
+        foreach ($request->meal_list as $key => $meal) {
+            foreach ($mealTypes as $mealType) {
+                if (!empty($meal['recipes'][$mealType])) {
+                    $recipe = Recipe::create([
+                        'name' => $meal['recipes'][$mealType]['name'],
+                        'instructions' => $meal['recipes'][$mealType]['instructions'],
+                        'recipe_date' => date('Y-m-d', $meal['date'] / 1000),
+                        'meal_type' => $mealType,
+                        'plan_id' => $plan->id,
+                    ]);
+                    $ingredients_used =  $meal['recipes'][$mealType]['ingredients_used'];
+                    foreach ($ingredients_used as $key => $ingredient_used) {
+                        $ingredient = Ingredient::where('name', $ingredient_used)->first();
+                        if ($ingredient) {
+                            $recipe_ingredient = $recipe->recipeIngredients()->create([
+                                'ingredient_id' => $ingredient->id,
+                            ]);
+                            $selected_suggested_product = null;
+                            foreach ($meal['recipes'][$mealType]['suggestions'][$ingredient_used] as $suggestion_key => $suggestion) {
+                                if (!empty($suggestion['selected'])) {
+                                    $selected_suggested_product = $suggestion;
+                                    break;
+                                }
+                            }
+                            $recipe_ingredient->ingredientProduct()->create([
+                                'recipe_ingredient_id' => $recipe_ingredient->id,
+                                'prod_id' => $selected_suggested_product['prod_id'],
+                                'price' => $selected_suggested_product['price'],
+                                'title' => $selected_suggested_product['title'],
+                                'description' => $selected_suggested_product['description'],
+                                'link' => $selected_suggested_product['link'],
+                                'img' => $selected_suggested_product['img'],
+                                
+                            ]);
+                        }
+                    }
+                }
+            }
+        }
+
+
+
+        return response()->json([
+            'message' => 'Successfully created plan',
+            'plan' => $plan,
         ]);
     }
 

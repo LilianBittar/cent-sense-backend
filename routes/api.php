@@ -27,10 +27,13 @@ Route::get('/ingredients', function (Request $request) {
     return Ingredient::all();
 });
 
-Route::post('/recipe/create', [PlanController::class, 'createRecipe']);
+Route::post('/plans/generate', [PlanController::class, 'generate'])
+                ->middleware('auth:sanctum');
 
+Route::post('/plans/save', [PlanController::class, 'store'])
+                ->middleware('auth:sanctum');
 
-Route::post('/plan/generate', [PlanController::class, 'generate'])
+Route::get('/plans', [PlanController::class, 'index'])
                 ->middleware('auth:sanctum');
 
 Route::post('/user-preferences', [UserPreferenceController::class, 'store'])
