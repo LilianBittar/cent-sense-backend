@@ -42,23 +42,18 @@ class PlanController extends Controller
     {
         $user = $request->user();
         $meals = $request->meals;
-
         foreach ($meals as &$meal) {
             $meal['recipes'] = [];
-
             $mealTypes = ['breakfast', 'lunch', 'dinner'];
-
             foreach ($mealTypes as $mealType) {
                 if ($meal[$mealType]) {
                     $ingredients = UserPreference::where('user_id', $user->id)
                         ->where('preference_category', $mealType)
                         ->get()
                         ->pluck('name');
-
                     $recipe = $this->createRecipe($mealType, $ingredients);
                     $recipe = trim(preg_replace('/\s+/', ' ', $recipe));
                     $recipe = json_decode($recipe, true);
-
                     foreach ($recipe['ingredients_used'] as $key => $ingredient_used) {
                         $ingredient = Ingredient::where('name', $ingredient_used)->first();
                         if ($ingredient) {
@@ -66,7 +61,6 @@ class PlanController extends Controller
                             usort($suggestion_list, function ($a, $b) {
                                 return $b['price'] - $a['price'];
                             });
-                            
                             $selected_suggestion_index = count($suggestion_list);
                             $selected_suggestion_index = floor($selected_suggestion_index / 2); 
                             // $selected_suggestion_index = count($suggestion_list) - 1; 
