@@ -6,12 +6,7 @@ use App\Models\Plan;
 use App\Models\Recipe;
 use App\Models\Ingredient;
 use App\Models\UserPreference;
-use App\Http\Requests\StorePlanRequest;
-use App\Http\Requests\UpdatePlanRequest;
 use Illuminate\Http\Request;
-use Google\Cloud\Translate\V2\TranslateClient;
-use Illuminate\Support\Facades\Http;
-
 class PlanController extends Controller
 {
 
@@ -54,7 +49,11 @@ class PlanController extends Controller
                     $recipe = $this->createRecipe($mealType, $ingredients);
                     $recipe = trim(preg_replace('/\s+/', ' ', $recipe));
                     $recipe = json_decode($recipe, true);
-                    foreach ($recipe['ingredients_used'] as $key => $ingredient_used) {
+                    // return response()->json([
+                    //     'message' => 'Successfully generated plan',
+                    //     'plan' => $recipe,
+                    // ]);
+                    foreach ($recipe['ingredients_used'] as $ingredient_used) {
                         $ingredient = Ingredient::where('name', $ingredient_used)->first();
                         if ($ingredient) {
                             $suggestion_list = $this->getProductSuggestions($ingredient->name_dk)['suggestions'];
@@ -143,17 +142,30 @@ class PlanController extends Controller
     public function createRecipe($meal, $ingredients)
     {
         $ingredients = str_replace(['"', "[", "]"], '', $ingredients);
-        $preprompt = "create a " . $meal . " recipe using some or all the following ingredients: " . $ingredients .
-        '.  place the list of used ingredients into a list called "ingredients_used" . 
+        $preprompt = "create a " . $meal . " recipe using some or all the following ingredients: " . $ingredients . '.  place the list of used ingredients into a list called "ingredients_used" . 
         Use only the names of the ingredients used. The format of the json object should be as follows: 
-        { "ingredients_used": ["ingredient1", "ingredient2", "ingredient3"], "instructions": "instructions for the recipe", "name": "name of the recipe"}' ;
+        { "ingredients_used": ["ingredient1", "ingredient2", "ingredient3"], "instructions": "instructions for the recipe", "name": "name of the recipe"}';
         $data = [
-            'prompt' => $preprompt,
+            'messages' => [
+                [
+                    'role' => 'system',
+                    'content' => 'You are a recipe generator AI. Generate a recipe using the given ingredients.',
+                ],
+                [
+                    'role' => 'user',
+                    'content' => $preprompt,
+                ],
+                [
+                    'role' => 'assistant',
+                    'content' => 'Generate a recipe.',
+                ],
+            ],
             'max_tokens' => 400,
+            'model' => "gpt-4o-mini",
         ];
         
         // Initializing cURL session
-        $ch = curl_init('https://api.openai.com/v1/engines/text-davinci-003/completions');
+        $ch = curl_init('https://api.openai.com/v1/chat/completions');
         curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
         curl_setopt($ch, CURLOPT_POST, true);
         curl_setopt($ch, CURLOPT_POSTFIELDS, json_encode($data));
@@ -168,9 +180,11 @@ class PlanController extends Controller
         
         // Decoding the response
         $result = json_decode($response, true);
-        
         // Outputting the generated recipe
-        return $result['choices'][0]['text'];
+        
+        error_log(print_r($result, true));
+        // return $result['choices'][0]['text'];
+        return $result['choices'][0]["message"]["content"];
     } 
 
     public function getProductSuggestions($product_name){
