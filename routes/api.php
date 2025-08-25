@@ -36,6 +36,9 @@ Route::post('/plans/save', [PlanController::class, 'store'])
 Route::get('/plans', [PlanController::class, 'index'])
                 ->middleware('auth:sanctum');
 
+Route::delete('/plans/{id}', [PlanController::class, 'destroy'])
+                ->middleware('auth:sanctum');
+
 Route::post('/user-preferences', [UserPreferenceController::class, 'store'])
                 ->middleware('auth:sanctum');
 Route::get('/user-preferences', [UserPreferenceController::class, 'index'])

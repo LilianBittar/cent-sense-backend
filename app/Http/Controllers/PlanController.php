@@ -47,12 +47,23 @@ class PlanController extends Controller
                         ->get()
                         ->pluck('name');
                     $recipe = $this->createRecipe($mealType, $ingredients);
+                    error_log("Raw AI response: " . $recipe);
                     $recipe = trim(preg_replace('/\s+/', ' ', $recipe));
                     $recipe = json_decode($recipe, true);
-                    // return response()->json([
-                    //     'message' => 'Successfully generated plan',
-                    //     'plan' => $recipe,
-                    // ]);
+                    
+                    // Check if JSON decode was successful
+                    if ($recipe === null) {
+                        error_log("Failed to decode JSON for $mealType");
+                        continue; // Skip this meal type
+                    }
+                    
+                    // Check if ingredients_used exists and is an array
+                    if (!isset($recipe['ingredients_used']) || !is_array($recipe['ingredients_used'])) {
+                        error_log("Missing or invalid ingredients_used for $mealType: " . print_r($recipe, true));
+                        continue; // Skip this meal type
+                    }
+                    
+                    error_log("Successfully decoded recipe for $mealType: " . print_r($recipe, true));
                     foreach ($recipe['ingredients_used'] as $ingredient_used) {
                         $ingredient = Ingredient::where('name', $ingredient_used)->first();
                         if ($ingredient) {
@@ -182,7 +193,6 @@ class PlanController extends Controller
         $result = json_decode($response, true);
         // Outputting the generated recipe
         
-        error_log(print_r($result, true));
         // return $result['choices'][0]['text'];
         return $result['choices'][0]["message"]["content"];
     } 
